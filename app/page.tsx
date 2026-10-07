@@ -1,69 +1,66 @@
-import Image from "next/image";
+import Link from "next/link";
+/**@ts-ignore */
+import { ArrowRight, Database, MessageSquare, ShieldCheck } from "lucide-react";
 
-export default function Home() {
+const FEATURES = [
+  {
+    icon: Database,
+    title: "One persistent workspace",
+    body: "Upload once. Every file, connection, and extracted fact stays available — no re-uploading to ask a new question.",
+  },
+  {
+    icon: MessageSquare,
+    title: "Ask it anything",
+    body: "Chat against your own data. Answers are grounded in what you've actually uploaded, not the open internet.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "You control the memory",
+    body: "Delete a file and everything derived from it disappears with it. Nothing lingers that you didn't put there.",
+  },
+];
+
+export default function LandingPage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="flex min-h-dvh flex-col bg-background">
+      <header className="flex items-center justify-between px-5 py-5 sm:px-10">
+        <span className="font-display text-lg font-bold text-foreground">
+          Arc<span style={{ color: "var(--primary)" }}>space</span>
+        </span>
+        <Link
+          href="/platform/home"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          Open App
+        </Link>
+      </header>
+
+      <section className="mx-auto flex max-w-2xl flex-1 flex-col items-center justify-center px-5 py-16 text-center sm:px-10">
+        <h1 className="font-display text-4xl font-bold leading-tight text-foreground sm:text-5xl">
+          Give your business a <span style={{ color: "var(--primary)" }}>permanent memory</span>.
+        </h1>
+        <p className="mt-5 max-w-lg text-base text-muted-foreground sm:text-lg">
+          Upload your documents once. Arcspace builds a persistent, searchable workspace so the AI can
+          answer questions about your information — accurately, every time, without re-sending a thing.
+        </p>
+        <Link
+          href="/platform/home"
+          className="mt-8 inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+        >
+          Get started
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </section>
+
+      <section className="mx-auto grid w-full max-w-4xl grid-cols-1 gap-4 px-5 pb-16 sm:grid-cols-3 sm:px-10">
+        {FEATURES.map((f) => (
+          <div key={f.title} className="rounded-xl border border-border bg-card p-5">
+            <f.icon className="h-5 w-5 text-primary" />
+            <h3 className="mt-3 font-display text-sm font-semibold text-foreground">{f.title}</h3>
+            <p className="mt-1.5 text-sm text-muted-foreground">{f.body}</p>
+          </div>
+        ))}
+      </section>
+    </main>
   );
 }
