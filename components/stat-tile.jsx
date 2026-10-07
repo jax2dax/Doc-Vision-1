@@ -32,7 +32,7 @@ export function Sidebar() {
         </button>
         {open && (
           <span className="whitespace-nowrap font-display text-[17px] font-bold tracking-tight text-sidebar-foreground">
-            Arc<span style={{ color: "var(--primary)" }}>space</span>
+            <span className="font-brand">Doc-Vision-<span style={{ color: "var(--primary)" }}>1</span></span>
           </span>
         )}
       </div>

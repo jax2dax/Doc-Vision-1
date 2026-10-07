@@ -97,7 +97,7 @@ export function FileUploadDropzone({ onUpload }) {
     >
       <UploadCloud className="h-6 w-6 text-muted-foreground" />
       <p className="text-sm font-medium text-foreground">Drop an image here, or click to browse</p>
-      <p className="text-xs text-muted-foreground">PNG, JPEG, or WebP — up to 15MB (V1 accepts images only)</p>
+      <p className="text-xs text-muted-foreground">PNG, JPEG, or WebP, up to 15MB (V1 accepts images only)</p>
       <input
         ref={inputRef}
         type="file"

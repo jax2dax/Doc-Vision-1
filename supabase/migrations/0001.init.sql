@@ -1,5 +1,5 @@
 -- ============================================================
--- Arcspace V1 schema
+-- Doc-Vision-1 V1 schema
 --
 -- Design notes (matches the architecture we agreed on):
 --   * every table carries workspace_id -> this is the isolation

@@ -33,7 +33,7 @@ export function MobileWorkspaceSheet({ open, onOpenChange }) {
         </SheetContent>
       </Sheet>
 
-      {/* Reuses the same dialog component — on mobile it just renders centered,
+      {/* Reuses the same dialog component, on mobile it just renders centered,
           which is fine since it's a short two-field form, not worth a second
           bespoke mobile-only modal. */}
       <NewWorkspaceDialog open={showNewDialog} onOpenChange={setShowNewDialog} />

@@ -21,7 +21,7 @@ const SheetOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ));
 SheetOverlay.displayName = "SheetOverlay";
 
-// side="bottom" — this is the only variant this app needs (mobile picker sheet)
+// side="bottom", this is the only variant this app needs (mobile picker sheet)
 const SheetContent = React.forwardRef(({ className, children, ...props }, ref) => (
   <SheetPortal>
     <SheetOverlay />

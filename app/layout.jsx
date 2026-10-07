@@ -1,39 +1,40 @@
-import { Fraunces, Work_Sans, DM_Mono } from "next/font/google";
+import { Exo, Macondo, Macondo_Swash_Caps } from "next/font/google";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import "./globals.css";
 
-// Display font (headings, workspace names) — matches the design's serif accents
-const fraunces = Fraunces({
+// Body and UI text
+const exo = Exo({
   subsets: ["latin"],
-  variable: "--font-fraunces",
-  weight: ["600", "700"],
+  variable: "--font-exo",
 });
 
-// Body font
-const workSans = Work_Sans({
+// Headings, workspace names, stats
+const macondo = Macondo({
   subsets: ["latin"],
-  variable: "--font-work-sans",
-  weight: ["400", "500", "600"],
+  variable: "--font-macondo",
+  weight: "400",
 });
 
-// Mono font (labels, timestamps, stats)
-const dmMono = DM_Mono({
+// Brand wordmark only
+const macondoSwash = Macondo_Swash_Caps({
   subsets: ["latin"],
-  variable: "--font-dm-mono",
-  weight: ["400", "500"],
+  variable: "--font-macondo-swash",
+  weight: "400",
 });
 
 export const metadata = {
-  title: "Arcspace",
-  description: "Your persistent AI workspace.",
+  title: "Doc-Vision-1",
+  description: "Protocols, documentation and proofchecking for clinics.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${fraunces.variable} ${workSans.variable} ${dmMono.variable} antialiased`}
-      >
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${exo.variable} ${macondo.variable} ${macondoSwash.variable}`}
+    >
+      <body className="antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

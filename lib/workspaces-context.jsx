@@ -24,7 +24,7 @@ export function WorkspacesProvider({ children }) {
     }
   }, []);
 
-  // Fetch-on-mount: intentional, not a derived-state anti-pattern —
+  // Fetch-on-mount: intentional, not a derived-state anti-pattern,
   // this loads the workspace list once when the provider mounts.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

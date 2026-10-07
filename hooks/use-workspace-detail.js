@@ -24,7 +24,7 @@ export function useWorkspaceDetail(workspaceId) {
     }
   }, [workspaceId]);
 
-  // Fetch-on-mount: intentional, not a derived-state anti-pattern —
+  // Fetch-on-mount: intentional, not a derived-state anti-pattern,
   // this is the one place that kicks off loading data from the server.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -40,11 +40,13 @@ export function useWorkspaceDetail(workspaceId) {
 
       const res = await fetch("/api/assets/upload", { method: "POST", body: formData });
       const json = await res.json();
-      // 201 = fully succeeded, 207 = asset saved but ingestion failed — both refresh the list
+      // 201 = fully succeeded, 207 = asset saved but ingestion failed, both refresh the list
       if (res.status !== 201 && res.status !== 207) {
         throw new Error(json.error ?? "Upload failed");
       }
       await refresh();
+      // 207: the file was saved but couldn't be indexed, surface why.
+      if (json.error) throw new Error(json.error);
       return json;
     },
     [workspaceId, refresh]
@@ -62,5 +64,19 @@ export function useWorkspaceDetail(workspaceId) {
     [refresh]
   );
 
-  return { workspace, assets, loading, error, refresh, uploadAsset, deleteAsset };
+  const askQuestion = useCallback(
+    async (question) => {
+      const res = await fetch(`/api/workspaces/${workspaceId}/ask`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not get an answer");
+      return json;
+    },
+    [workspaceId]
+  );
+
+  return { workspace, assets, loading, error, refresh, uploadAsset, deleteAsset, askQuestion };
 }

@@ -18,7 +18,7 @@ export default function PlatformHomePage() {
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground">Your Workspaces</h1>
-          <p className="text-sm text-muted-foreground">Everything you&apos;ve uploaded, organized and searchable.</p>
+          <p className="text-sm text-muted-foreground">Protocols and documents for each clinic or department, organised and searchable.</p>
         </div>
         <Button onClick={() => setShowNewDialog(true)} className="hidden sm:inline-flex">
           <Plus className="h-4 w-4" />
@@ -48,7 +48,7 @@ export default function PlatformHomePage() {
           </div>
           <div>
             <p className="font-medium text-foreground">Create your first workspace</p>
-            <p className="text-sm text-muted-foreground">Upload files and start asking questions about them.</p>
+            <p className="text-sm text-muted-foreground">Upload protocols and documents, then ask questions about them.</p>
           </div>
         </button>
       ) : (

@@ -1,10 +1,18 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { UploadCloud } from "lucide-react";
+import { FileText, Loader2, UploadCloud } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const ACCEPTED = "image/png,image/jpeg,image/webp,application/pdf";
 
@@ -13,98 +21,125 @@ export function FileUploadDropzone({ onUpload }) {
   const [dragActive, setDragActive] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
   const [description, setDescription] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [uploadingName, setUploadingName] = useState(null);
   const [error, setError] = useState(null);
 
   function pickFile(file) {
-    if (!file) return;
-    setPendingFile(file);
+    if (!file || uploadingName) return;
     setError(null);
+    setDescription("");
+    setPendingFile(file);
   }
 
-  async function handleConfirm() {
-    if (!pendingFile) return;
-    setSubmitting(true);
+  function closeDialog() {
+    setPendingFile(null);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  async function upload() {
+    const file = pendingFile;
+    if (!file) return;
+    setPendingFile(null);
     setError(null);
+    setUploadingName(file.name);
     try {
-      await onUpload(pendingFile, description);
-      setPendingFile(null);
-      setDescription("");
+      await onUpload(file, description.trim());
     } catch (err) {
       setError(err.message);
     } finally {
-      setSubmitting(false);
+      setUploadingName(null);
+      if (inputRef.current) inputRef.current.value = "";
     }
   }
 
-  if (pendingFile) {
-    return (
-      <div className="rounded-xl border border-border bg-card p-4">
-        <div className="mb-3 flex items-center gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-secondary">
-            <UploadCloud className="h-5 w-5 text-primary" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-foreground">{pendingFile.name}</p>
-            <p className="text-xs text-muted-foreground">{(pendingFile.size / 1024).toFixed(0)} KB</p>
-          </div>
-        </div>
-        <Label htmlFor="asset-desc">Description (optional, but helps the AI a lot)</Label>
-        <Input
-          id="asset-desc"
-          className="mt-2"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder='e.g. "staff appointment schedule, not the client list"'
-        />
-        {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
-        <div className="mt-3 flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => {
-              setPendingFile(null);
-              setError(null);
-            }}
-            disabled={submitting}
-          >
-            Cancel
-          </Button>
-          <Button className="flex-[2]" onClick={handleConfirm} disabled={submitting}>
-            {submitting ? "Uploading…" : "Upload"}
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const busy = Boolean(uploadingName);
 
   return (
-    <div
-      onDragOver={(e) => {
-        e.preventDefault();
-        setDragActive(true);
-      }}
-      onDragLeave={() => setDragActive(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setDragActive(false);
-        pickFile(e.dataTransfer.files?.[0]);
-      }}
-      onClick={() => inputRef.current?.click()}
-      className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-10 text-center transition-colors ${
-        dragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"
-      }`}
-    >
-      <UploadCloud className="h-6 w-6 text-muted-foreground" />
-      <p className="text-sm font-medium text-foreground">Drop a file here, or click to browse</p>
-      <p className="text-xs text-muted-foreground">PNG, JPEG, WebP, or PDF — up to 20MB</p>
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ACCEPTED}
-        className="hidden"
-        onChange={(e) => pickFile(e.target.files?.[0])}
-      />
+    <div>
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          if (!busy) setDragActive(true);
+        }}
+        onDragLeave={() => setDragActive(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragActive(false);
+          pickFile(e.dataTransfer.files?.[0]);
+        }}
+        onClick={() => !busy && inputRef.current?.click()}
+        className={`flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-10 text-center transition-colors ${
+          busy ? "cursor-default" : "cursor-pointer"
+        } ${dragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
+      >
+        {busy ? (
+          <>
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <p className="max-w-full truncate text-sm font-medium text-foreground">Processing {uploadingName}…</p>
+            <p className="text-xs text-muted-foreground">Reading and indexing the file. This can take a minute.</p>
+          </>
+        ) : (
+          <>
+            <UploadCloud className="h-6 w-6 text-muted-foreground" />
+            <p className="text-sm font-medium text-foreground">Drop a file here, or click to browse</p>
+            <p className="text-xs text-muted-foreground">PNG, JPEG, WebP or PDF, up to 20MB</p>
+          </>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept={ACCEPTED}
+          className="hidden"
+          onChange={(e) => pickFile(e.target.files?.[0])}
+        />
+      </div>
+      {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+
+      <Dialog open={Boolean(pendingFile)} onOpenChange={(open) => !open && closeDialog()}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add file</DialogTitle>
+            <DialogDescription>
+              A short description helps the AI pick the right file when you ask a question.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
+            <FileText className="h-4 w-4 flex-shrink-0 text-primary" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-medium text-foreground">{pendingFile?.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {pendingFile && (pendingFile.size / 1024 / 1024 >= 1
+                  ? `${(pendingFile.size / 1024 / 1024).toFixed(1)} MB`
+                  : `${Math.max(1, Math.round(pendingFile.size / 1024))} KB`)}
+              </p>
+            </div>
+          </div>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              upload();
+            }}
+          >
+            <Label htmlFor="asset-desc">Description</Label>
+            <Input
+              id="asset-desc"
+              className="mt-2"
+              autoFocus
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder='e.g. "Staff schedule for October, not the client list"'
+            />
+            <DialogFooter>
+              <Button type="button" variant="outline" className="flex-1" onClick={closeDialog}>
+                Cancel
+              </Button>
+              <Button type="submit" className="flex-[2]">
+                Upload
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

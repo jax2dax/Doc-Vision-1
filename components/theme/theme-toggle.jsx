@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 export function ThemeToggle({ className }) {
   const { resolvedTheme, setTheme } = useTheme();
   // avoid hydration mismatch: only render the real icon after mount.
-  // This is the standard next-themes pattern — the effect only ever
+  // This is the standard next-themes pattern, the effect only ever
   // runs once on mount, so it can't cascade.
   const [mounted, setMounted] = useState(false);
   // eslint-disable-next-line react-hooks/set-state-in-effect

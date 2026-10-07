@@ -2,19 +2,20 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Users, Clock, Sparkles } from "lucide-react";
+import { Users, ClipboardCheck, Sparkles } from "lucide-react";
 import { useWorkspaceDetail } from "@/hooks/use-workspace-detail";
 import { WorkspaceAvatar } from "@/components/platform/workspace-avatar";
 import { StatusPill } from "@/components/platform/status-badge";
 import { StatTile } from "@/components/platform/stat-tile";
 import { FileUploadDropzone } from "@/components/platform/file-upload-dropzone";
 import { AssetList } from "@/components/platform/asset-list";
+import { WorkspaceChat } from "@/components/platform/workspace-chat";
 
-const TABS = ["overview", "files", "tasks", "activity"];
+const TABS = ["overview", "chat", "files", "proofcheck", "activity"];
 
 export default function WorkspaceDetailPage() {
   const { id } = useParams();
-  const { workspace, assets, loading, error, uploadAsset, deleteAsset } = useWorkspaceDetail(id);
+  const { workspace, assets, loading, error, uploadAsset, deleteAsset, askQuestion } = useWorkspaceDetail(id);
   const [activeTab, setActiveTab] = useState("overview");
 
   if (loading) {
@@ -34,7 +35,7 @@ export default function WorkspaceDetailPage() {
     );
   }
 
-  const readyFacts = assets.filter((a) => a.status === "ready").length;
+  const readyFiles = assets.filter((a) => a.status === "ready").length;
 
   return (
     <div className="flex h-full flex-col">
@@ -82,16 +83,16 @@ export default function WorkspaceDetailPage() {
           <div className="flex flex-col gap-5">
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               <StatTile label="Files" value={assets.length} color="#0ea5e9" />
-              <StatTile label="Extracted facts ready" value={readyFacts} color="#8b5cf6" />
+              <StatTile label="Files ready" value={readyFiles} color="#8b5cf6" />
               <StatTile label="Members" value={1} color="#22c55e" />
               <StatTile label="Status" value={workspace.status} color="#f59e0b" />
             </div>
 
             <div className="rounded-xl border border-border bg-card px-5 py-4">
               <p className="text-sm leading-relaxed text-muted-foreground">
-                <span className="font-medium text-foreground">About — </span>
+                <span className="font-medium text-foreground">About: </span>
                 {workspace.description || "No description yet."} This workspace currently holds{" "}
-                {assets.length} file{assets.length === 1 ? "" : "s"}, with {readyFacts} fully processed and
+                {assets.length} file{assets.length === 1 ? "" : "s"}, with {readyFiles} fully processed and
                 searchable by chat.
               </p>
             </div>
@@ -106,6 +107,8 @@ export default function WorkspaceDetailPage() {
           </div>
         )}
 
+        {activeTab === "chat" && <WorkspaceChat onAsk={askQuestion} hasReadyFiles={readyFiles > 0} />}
+
         {activeTab === "files" && (
           <div className="flex flex-col gap-4">
             <FileUploadDropzone onUpload={uploadAsset} />
@@ -113,11 +116,11 @@ export default function WorkspaceDetailPage() {
           </div>
         )}
 
-        {activeTab === "tasks" && (
+        {activeTab === "proofcheck" && (
           <EmptyTabState
-            icon={Clock}
-            title="Tasks are coming in V1.5"
-            description="This tab is wired up and ready — task creation lands once the core ingest → chat loop is fully proven."
+            icon={ClipboardCheck}
+            title="Proofchecking is coming soon"
+            description="Check a new or updated document against your existing protocols and flag conflicts and gaps before it goes live."
           />
         )}
 

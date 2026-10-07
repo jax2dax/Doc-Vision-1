@@ -22,7 +22,7 @@ export function WorkspaceList({ collapsed = false, showDescription = false, onSe
 
   if (workspaces.length === 0) {
     return !collapsed ? (
-      <p className="px-3 py-2 text-xs text-muted-foreground">No workspaces yet — create one to get started.</p>
+      <p className="px-3 py-2 text-xs text-muted-foreground">No workspaces yet. Create one to get started.</p>
     ) : null;
   }
 

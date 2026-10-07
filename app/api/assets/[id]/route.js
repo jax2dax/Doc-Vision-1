@@ -18,7 +18,8 @@ export async function DELETE(request, { params }) {
   }
 
   // extracted_items rows are removed automatically via
-  // `references public.assets(id) on delete cascade` in the schema —
+  // `references public.assets(id) on delete cascade`, and its chunks in
+  // n8n_vectors by the assets_delete_vectors trigger (0002.rag.sql),
   // that's what guarantees derived data can't outlive its source.
   const { error: deleteError } = await supabase.from("assets").delete().eq("id", id);
   if (deleteError) {
