@@ -42,10 +42,43 @@ create table if not exists public.assets (
   storage_path    text not null,
   status          text not null default 'pending' check (status in ('pending','processing','ready','error')),
   error_message   text,
+  intellect_key   text,                      -- document type, see lib/intellects/
   created_at      timestamptz not null default now()
 );
 
 create index if not exists assets_workspace_idx on public.assets (workspace_id);
+
+-- ---------- workspace_intellects (which document intellects a workspace has equipped) ----------
+
+create table if not exists public.workspace_intellects (
+  workspace_id  uuid not null references public.workspaces(id) on delete cascade,
+  intellect_key text not null,
+  created_at    timestamptz not null default now(),
+  primary key (workspace_id, intellect_key)
+);
+
+-- ---------- document_dates (dates and deadlines found in uploaded documents) ----------
+
+create table if not exists public.document_dates (
+  id              uuid primary key default gen_random_uuid(),
+  workspace_id    uuid not null references public.workspaces(id) on delete cascade,
+  asset_id        uuid not null references public.assets(id) on delete cascade,
+  label           text not null,
+  date_value      date,
+  kind            text not null,
+  quote           text,
+  page            int,
+  deadline_date   date,
+  deadline_basis  text,
+  deadline_rule   text,
+  stated_due      date,
+  rule_due        date,
+  note            text,
+  created_at      timestamptz not null default now()
+);
+create index if not exists document_dates_workspace_idx on public.document_dates (workspace_id);
+create index if not exists document_dates_asset_idx on public.document_dates (asset_id);
+create index if not exists document_dates_due_idx on public.document_dates (workspace_id, deadline_date);
 
 -- ---------- extracted_items (legacy V1 fact extraction) ----------
 
@@ -151,6 +184,8 @@ alter table public.extracted_items   enable row level security;
 alter table public.conversations     enable row level security;
 alter table public.messages          enable row level security;
 alter table public.n8n_vectors       enable row level security;
+alter table public.workspace_intellects enable row level security;
+alter table public.document_dates enable row level security;
 
 drop policy if exists "owner can do everything on their workspaces" on public.workspaces;
 create policy "owner can do everything on their workspaces"
@@ -173,6 +208,16 @@ create policy "workspace access via parent workspace" on public.extracted_items 
   using (workspace_id in (select id from public.workspaces where owner_id = auth.uid()))
   with check (workspace_id in (select id from public.workspaces where owner_id = auth.uid()));
 
+drop policy if exists "workspace access via parent workspace" on public.workspace_intellects;
+create policy "workspace access via parent workspace" on public.workspace_intellects for all
+  using (workspace_id in (select id from public.workspaces where owner_id = auth.uid()))
+  with check (workspace_id in (select id from public.workspaces where owner_id = auth.uid()));
+
+drop policy if exists "workspace access via parent workspace" on public.document_dates;
+create policy "workspace access via parent workspace" on public.document_dates for all
+  using (workspace_id in (select id from public.workspaces where owner_id = auth.uid()))
+  with check (workspace_id in (select id from public.workspaces where owner_id = auth.uid()));
+
 drop policy if exists "workspace access via parent workspace" on public.conversations;
 create policy "workspace access via parent workspace" on public.conversations for all
   using (workspace_id in (select id from public.workspaces where owner_id = auth.uid()))
@@ -192,10 +237,13 @@ insert into storage.buckets (id, name, public)
 values ('assets', 'assets', false)
 on conflict (id) do nothing;
 
--- ---------- sanity check: should list 7 tables ----------
+-- ---------- sanity check: should list 9 tables ----------
 
 select table_name
 from information_schema.tables
 where table_schema = 'public'
-  and table_name in ('workspaces','workspace_members','assets','extracted_items','conversations','messages','n8n_vectors')
+  and table_name in ('workspaces','workspace_members','assets','extracted_items','conversations','messages','n8n_vectors','workspace_intellects','document_dates')
 order by table_name;
+
+-- make the API see the new column/table immediately
+notify pgrst, 'reload schema';

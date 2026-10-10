@@ -5,6 +5,10 @@ import { useCallback, useEffect, useState } from "react";
 export function useWorkspaceDetail(workspaceId) {
   const [workspace, setWorkspace] = useState(null);
   const [assets, setAssets] = useState([]);
+  const [catalog, setCatalog] = useState([]);
+  const [equipped, setEquipped] = useState([]);
+  const [dates, setDates] = useState([]);
+  const [datesError, setDatesError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -16,6 +20,7 @@ export function useWorkspaceDetail(workspaceId) {
       if (!res.ok) throw new Error(json.error ?? "Failed to load workspace");
       setWorkspace(json.workspace);
       setAssets(json.assets);
+      setEquipped(json.equippedIntellects ?? []);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -31,12 +36,101 @@ export function useWorkspaceDetail(workspaceId) {
     refresh();
   }, [refresh]);
 
+  const refreshDates = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/deadlines`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not load due dates");
+      setDates(json.dates);
+      setDatesError(null);
+    } catch (err) {
+      setDatesError(err.message);
+    }
+  }, [workspaceId]);
+
+  // Fetch-on-mount, same as the workspace itself.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refreshDates();
+  }, [refreshDates]);
+
+  const rescanDates = useCallback(
+    async (assetId) => {
+      const res = await fetch(`/api/workspaces/${workspaceId}/deadlines`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(assetId ? { assetId } : {}),
+      });
+      const json = await res.json();
+      await refreshDates();
+      if (!res.ok || json.failed?.length) {
+        throw new Error(json.failed?.[0]?.error ?? json.error ?? "Rescan failed");
+      }
+      return json;
+    },
+    [workspaceId, refreshDates]
+  );
+
+  // The catalog of available intellects is static per deploy: load once.
+  useEffect(() => {
+    fetch("/api/intellects")
+      .then((r) => r.json())
+      .then((j) => setCatalog(j.intellects ?? []))
+      .catch(() => {});
+  }, []);
+
+  const updateEquipped = useCallback(
+    async (keys) => {
+      const res = await fetch(`/api/workspaces/${workspaceId}/intellects`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ equipped: keys }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not update intellects");
+      setEquipped(json.equipped);
+      // Un-equipping a type can leave files pointing at it; reload so the list is truthful.
+      await refresh();
+    },
+    [workspaceId, refresh]
+  );
+
+  const setAssetType = useCallback(
+    async (assetId, intellectKey) => {
+      const res = await fetch(`/api/assets/${assetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ intellectKey }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not change document type");
+      setAssets((list) => list.map((a) => (a.id === assetId ? { ...a, intellect_key: intellectKey } : a)));
+      await refreshDates();
+    },
+    [refreshDates]
+  );
+
+  const runCheck = useCallback(
+    async (assetId, checkType) => {
+      const res = await fetch(`/api/workspaces/${workspaceId}/checks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assetId, checkType }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "The check failed");
+      return json;
+    },
+    [workspaceId]
+  );
+
   const uploadAsset = useCallback(
-    async (file, description) => {
+    async (file, description, intellectKey) => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("workspaceId", workspaceId);
       formData.append("description", description ?? "");
+      if (intellectKey) formData.append("intellectKey", intellectKey);
 
       const res = await fetch("/api/assets/upload", { method: "POST", body: formData });
       const json = await res.json();
@@ -44,12 +138,12 @@ export function useWorkspaceDetail(workspaceId) {
       if (res.status !== 201 && res.status !== 207) {
         throw new Error(json.error ?? "Upload failed");
       }
-      await refresh();
+      await Promise.all([refresh(), refreshDates()]);
       // 207: the file was saved but couldn't be indexed, surface why.
       if (json.error) throw new Error(json.error);
       return json;
     },
-    [workspaceId, refresh]
+    [workspaceId, refresh, refreshDates]
   );
 
   const deleteAsset = useCallback(
@@ -59,9 +153,9 @@ export function useWorkspaceDetail(workspaceId) {
         const json = await res.json();
         throw new Error(json.error ?? "Delete failed");
       }
-      await refresh();
+      await Promise.all([refresh(), refreshDates()]);
     },
-    [refresh]
+    [refresh, refreshDates]
   );
 
   const askQuestion = useCallback(
@@ -78,5 +172,22 @@ export function useWorkspaceDetail(workspaceId) {
     [workspaceId]
   );
 
-  return { workspace, assets, loading, error, refresh, uploadAsset, deleteAsset, askQuestion };
+  return {
+    workspace,
+    assets,
+    catalog,
+    equipped,
+    loading,
+    error,
+    refresh,
+    uploadAsset,
+    deleteAsset,
+    askQuestion,
+    dates,
+    datesError,
+    rescanDates,
+    updateEquipped,
+    setAssetType,
+    runCheck,
+  };
 }

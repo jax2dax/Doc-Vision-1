@@ -11,7 +11,7 @@ const STATUS_META = {
   error: { icon: AlertCircle, label: "Failed", className: "text-destructive" },
 };
 
-export function AssetList({ assets, onDelete }) {
+export function AssetList({ assets, onDelete, typeOptions = [], onChangeType }) {
   const [deletingId, setDeletingId] = useState(null);
 
   if (assets.length === 0) {
@@ -46,6 +46,21 @@ export function AssetList({ assets, onDelete }) {
                 )
               )}
             </div>
+            {typeOptions.length > 0 && (
+              <select
+                aria-label={`Document type for ${asset.filename}`}
+                value={typeOptions.some((t) => t.key === asset.intellect_key) ? asset.intellect_key : ""}
+                onChange={(e) => onChangeType?.(asset.id, e.target.value || null)}
+                className="h-8 max-w-[7.5rem] flex-shrink-0 rounded-md border border-input bg-card px-2 text-xs text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">No type</option>
+                {typeOptions.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.abbreviation}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className={`flex items-center gap-1.5 text-xs ${meta.className}`}>
               <StatusIcon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{meta.label}</span>

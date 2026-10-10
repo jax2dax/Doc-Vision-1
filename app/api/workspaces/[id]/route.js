@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServiceClient, DEFAULT_USER_ID } from "@/lib/supabase/server";
+import { getEquippedKeys } from "@/lib/intellects/workspace";
 
 export async function GET(request, { params }) {
   const { id } = await params;
@@ -26,7 +27,14 @@ export async function GET(request, { params }) {
     return NextResponse.json({ error: assetsError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ workspace, assets });
+  let equippedIntellects = [];
+  try {
+    equippedIntellects = await getEquippedKeys(id);
+  } catch {
+    // Migration 0003 not applied yet: the app still works without intellects.
+  }
+
+  return NextResponse.json({ workspace, assets, equippedIntellects });
 }
 
 export async function DELETE(request, { params }) {

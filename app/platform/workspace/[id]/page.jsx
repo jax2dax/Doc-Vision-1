@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { Users, ClipboardCheck, Sparkles } from "lucide-react";
+import { AlertTriangle, Users, Sparkles } from "lucide-react";
 import { useWorkspaceDetail } from "@/hooks/use-workspace-detail";
 import { WorkspaceAvatar } from "@/components/platform/workspace-avatar";
 import { StatusPill } from "@/components/platform/status-badge";
@@ -10,12 +10,32 @@ import { StatTile } from "@/components/platform/stat-tile";
 import { FileUploadDropzone } from "@/components/platform/file-upload-dropzone";
 import { AssetList } from "@/components/platform/asset-list";
 import { WorkspaceChat } from "@/components/platform/workspace-chat";
+import { IntellectsPanel } from "@/components/platform/intellects-panel";
+import { ChecksPanel } from "@/components/platform/checks-panel";
+import { DeadlinesPanel, urgentDeadlineCount } from "@/components/platform/deadlines-panel";
 
-const TABS = ["overview", "chat", "files", "proofcheck", "activity"];
+const TABS = ["overview", "chat", "files", "deadlines", "intellects", "checks", "activity"];
+const TAB_LABELS = { deadlines: "due dates" };
 
 export default function WorkspaceDetailPage() {
   const { id } = useParams();
-  const { workspace, assets, loading, error, uploadAsset, deleteAsset, askQuestion } = useWorkspaceDetail(id);
+  const {
+    workspace,
+    assets,
+    catalog,
+    equipped,
+    loading,
+    error,
+    uploadAsset,
+    deleteAsset,
+    askQuestion,
+    dates,
+    datesError,
+    rescanDates,
+    updateEquipped,
+    setAssetType,
+    runCheck,
+  } = useWorkspaceDetail(id);
   const [activeTab, setActiveTab] = useState("overview");
 
   if (loading) {
@@ -36,6 +56,8 @@ export default function WorkspaceDetailPage() {
   }
 
   const readyFiles = assets.filter((a) => a.status === "ready").length;
+  const urgent = urgentDeadlineCount(dates);
+  const typeOptions = catalog.filter((i) => equipped.includes(i.key));
 
   return (
     <div className="flex h-full flex-col">
@@ -67,7 +89,12 @@ export default function WorkspaceDetailPage() {
                 : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab}
+            {TAB_LABELS[tab] ?? tab}
+            {tab === "deadlines" && urgent > 0 && (
+              <span className="ml-1.5 rounded-full bg-destructive px-1.5 py-0.5 font-mono text-[10px] text-white">
+                {urgent}
+              </span>
+            )}
             {tab === "files" && assets.length > 0 && (
               <span className="ml-1.5 rounded-full bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-primary">
                 {assets.length}
@@ -81,11 +108,23 @@ export default function WorkspaceDetailPage() {
       <div className="flex-1 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
         {activeTab === "overview" && (
           <div className="flex flex-col gap-5">
+            {urgent > 0 && (
+              <button
+                onClick={() => setActiveTab("deadlines")}
+                className="flex items-center gap-3 rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-left text-sm text-destructive transition-colors hover:bg-destructive/15"
+              >
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                <span className="flex-1 font-medium">
+                  {urgent} deadline{urgent === 1 ? " is" : "s are"} overdue or due within 7 days.
+                </span>
+                <span className="underline underline-offset-2">View</span>
+              </button>
+            )}
             <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
               <StatTile label="Files" value={assets.length} color="#0ea5e9" />
               <StatTile label="Files ready" value={readyFiles} color="#8b5cf6" />
-              <StatTile label="Members" value={1} color="#22c55e" />
-              <StatTile label="Status" value={workspace.status} color="#f59e0b" />
+              <StatTile label="Intellects equipped" value={equipped.length} color="#22c55e" />
+              <StatTile label="Urgent deadlines" value={urgent} color={urgent > 0 ? "#ef4444" : "#f59e0b"} />
             </div>
 
             <div className="rounded-xl border border-border bg-card px-5 py-4">
@@ -102,7 +141,7 @@ export default function WorkspaceDetailPage() {
                 <Sparkles className="h-4 w-4 text-primary" />
                 <h3 className="font-display text-sm font-semibold text-foreground">Quick upload</h3>
               </div>
-              <FileUploadDropzone onUpload={uploadAsset} />
+              <FileUploadDropzone onUpload={uploadAsset} typeOptions={typeOptions} />
             </div>
           </div>
         )}
@@ -111,16 +150,26 @@ export default function WorkspaceDetailPage() {
 
         {activeTab === "files" && (
           <div className="flex flex-col gap-4">
-            <FileUploadDropzone onUpload={uploadAsset} />
-            <AssetList assets={assets} onDelete={deleteAsset} />
+            <FileUploadDropzone onUpload={uploadAsset} typeOptions={typeOptions} />
+            <AssetList assets={assets} onDelete={deleteAsset} typeOptions={typeOptions} onChangeType={setAssetType} />
           </div>
         )}
 
-        {activeTab === "proofcheck" && (
-          <EmptyTabState
-            icon={ClipboardCheck}
-            title="Proofchecking is coming soon"
-            description="Check a new or updated document against your existing protocols and flag conflicts and gaps before it goes live."
+        {activeTab === "deadlines" && (
+          <DeadlinesPanel dates={dates} assets={assets} catalog={catalog} error={datesError} onRescan={rescanDates} />
+        )}
+
+        {activeTab === "intellects" && (
+          <IntellectsPanel catalog={catalog} equipped={equipped} onChange={updateEquipped} />
+        )}
+
+        {activeTab === "checks" && (
+          <ChecksPanel
+            assets={assets}
+            catalog={catalog}
+            equipped={equipped}
+            onRun={runCheck}
+            onGoToIntellects={() => setActiveTab("intellects")}
           />
         )}
 

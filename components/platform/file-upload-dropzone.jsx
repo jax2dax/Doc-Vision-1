@@ -16,11 +16,12 @@ import {
 
 const ACCEPTED = "image/png,image/jpeg,image/webp,application/pdf";
 
-export function FileUploadDropzone({ onUpload }) {
+export function FileUploadDropzone({ onUpload, typeOptions = [] }) {
   const inputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [pendingFile, setPendingFile] = useState(null);
   const [description, setDescription] = useState("");
+  const [intellectKey, setIntellectKey] = useState("");
   const [uploadingName, setUploadingName] = useState(null);
   const [error, setError] = useState(null);
 
@@ -28,6 +29,7 @@ export function FileUploadDropzone({ onUpload }) {
     if (!file || uploadingName) return;
     setError(null);
     setDescription("");
+    setIntellectKey("");
     setPendingFile(file);
   }
 
@@ -43,7 +45,7 @@ export function FileUploadDropzone({ onUpload }) {
     setError(null);
     setUploadingName(file.name);
     try {
-      await onUpload(file, description.trim());
+      await onUpload(file, description.trim(), intellectKey || null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -120,6 +122,27 @@ export function FileUploadDropzone({ onUpload }) {
               upload();
             }}
           >
+            {typeOptions.length > 0 && (
+              <div className="mb-4">
+                <Label htmlFor="asset-type">Document type</Label>
+                <select
+                  id="asset-type"
+                  value={intellectKey}
+                  onChange={(e) => setIntellectKey(e.target.value)}
+                  className="mt-2 h-10 w-full rounded-md border border-input bg-card px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Not specified</option>
+                  {typeOptions.map((t) => (
+                    <option key={t.key} value={t.key}>
+                      {t.name} ({t.abbreviation})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Lets checks and chat treat this file as that kind of document.
+                </p>
+              </div>
+            )}
             <Label htmlFor="asset-desc">Description</Label>
             <Input
               id="asset-desc"

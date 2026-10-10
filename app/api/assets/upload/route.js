@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient, DEFAULT_USER_ID } from "@/lib/supabase/server";
 import { ingestUpload } from "@/lib/rag/ingest";
+import { getEquippedKeys } from "@/lib/intellects/workspace";
 
 // Load + embed runs inside the request; big PDFs need the headroom.
 export const maxDuration = 300;
@@ -13,6 +14,7 @@ export async function POST(request) {
   const file = formData.get("file");
   const workspaceId = formData.get("workspaceId");
   const description = formData.get("description") ?? "";
+  const intellectKey = formData.get("intellectKey") || null;
 
   if (!file || typeof file === "string") {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -43,7 +45,10 @@ export async function POST(request) {
   }
 
   try {
-    const { asset, chunkCount, error } = await ingestUpload({ file, workspaceId, description });
+    if (intellectKey && !(await getEquippedKeys(workspaceId)).includes(intellectKey)) {
+      return NextResponse.json({ error: "That document type is not equipped in this workspace" }, { status: 400 });
+    }
+    const { asset, chunkCount, error } = await ingestUpload({ file, workspaceId, description, intellectKey });
     // 207 = asset row saved but ingestion failed (the row carries error_message)
     return NextResponse.json(
       error ? { asset, error: `Ingestion failed: ${error}` } : { asset, chunkCount },
