@@ -14,7 +14,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const ACCEPTED = "image/png,image/jpeg,image/webp,application/pdf";
+const ACCEPTED =
+  ".pdf,.xlsx,.csv,.png,.jpg,.jpeg,.webp,application/pdf,image/png,image/jpeg,image/webp,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 export function FileUploadDropzone({ onUpload, typeOptions = [] }) {
   const inputRef = useRef(null);
@@ -70,7 +71,7 @@ export function FileUploadDropzone({ onUpload, typeOptions = [] }) {
           pickFile(e.dataTransfer.files?.[0]);
         }}
         onClick={() => !busy && inputRef.current?.click()}
-        className={`flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed px-4 py-10 text-center transition-colors ${
+        className={`flex flex-col items-center justify-center gap-1.5 border border-dashed px-4 py-8 text-center transition-colors ${
           busy ? "cursor-default" : "cursor-pointer"
         } ${dragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/40"}`}
       >
@@ -82,9 +83,9 @@ export function FileUploadDropzone({ onUpload, typeOptions = [] }) {
           </>
         ) : (
           <>
-            <UploadCloud className="h-6 w-6 text-muted-foreground" />
+            <UploadCloud className="h-5 w-5 text-muted-foreground" />
             <p className="text-sm font-medium text-foreground">Drop a file here, or click to browse</p>
-            <p className="text-xs text-muted-foreground">PNG, JPEG, WebP or PDF, up to 20MB</p>
+            <p className="text-xs text-muted-foreground">Excel, CSV, PDF or image, up to 20MB. No client information.</p>
           </>
         )}
         <input
@@ -102,7 +103,7 @@ export function FileUploadDropzone({ onUpload, typeOptions = [] }) {
           <DialogHeader>
             <DialogTitle>Add file</DialogTitle>
             <DialogDescription>
-              A short description helps the AI pick the right file when you ask a question.
+              Do not upload client information. A short description helps when you ask questions later.
             </DialogDescription>
           </DialogHeader>
           <div className="mb-4 flex items-center gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2.5">
@@ -150,7 +151,7 @@ export function FileUploadDropzone({ onUpload, typeOptions = [] }) {
               autoFocus
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder='e.g. "Staff schedule for October, not the client list"'
+              placeholder='e.g. "Delegation book, all staff, 2026"'
             />
             <DialogFooter>
               <Button type="button" variant="outline" className="flex-1" onClick={closeDialog}>

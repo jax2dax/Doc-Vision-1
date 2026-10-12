@@ -27,7 +27,7 @@ const macondoSwash = Macondo_Swash_Caps({
 
 export const metadata = {
   title: "Doc-Vision-1",
-  description: "Protocols, documentation and proofchecking for clinics.",
+  description: "Due dates and document questions for group homes.",
 };
 
 export default function RootLayout({ children }) {

@@ -32,7 +32,7 @@ export async function DELETE(request, { params }) {
 
   return NextResponse.json({ ok: true });
 }
-/** Changes a file's document type: { intellectKey: "isp" | null } */
+/** Changes a file's document type: { intellectKey: "delegation-book" | null } */
 // Re-reads dates after a type change: one model call.
 export const maxDuration = 120;
 

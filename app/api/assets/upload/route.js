@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { createServiceClient, DEFAULT_USER_ID } from "@/lib/supabase/server";
 import { ingestUpload } from "@/lib/rag/ingest";
 import { getEquippedKeys } from "@/lib/intellects/workspace";
+import { spreadsheetKind } from "@/lib/rag/spreadsheet";
 
 // Load + embed runs inside the request; big PDFs need the headroom.
 export const maxDuration = 300;
 
 const ACCEPTED_MIME_TYPES = ["image/png", "image/jpeg", "image/webp", "application/pdf"];
+const ACCEPTED_LABEL = "PDF, Excel (.xlsx), CSV, PNG, JPEG, WebP";
 const MAX_FILE_BYTES = 20 * 1024 * 1024; // 20MB, PDFs run bigger than the image-only V1 cap did
 
 export async function POST(request) {
@@ -22,9 +24,9 @@ export async function POST(request) {
   if (!workspaceId) {
     return NextResponse.json({ error: "workspaceId is required" }, { status: 400 });
   }
-  if (!ACCEPTED_MIME_TYPES.includes(file.type)) {
+  if (!ACCEPTED_MIME_TYPES.includes(file.type) && !spreadsheetKind(file.name, file.type)) {
     return NextResponse.json(
-      { error: `Unsupported file type "${file.type}". Accepted: ${ACCEPTED_MIME_TYPES.join(", ")}` },
+      { error: `Unsupported file "${file.name}". Accepted: ${ACCEPTED_LABEL}. Old .xls files: save as .xlsx first.` },
       { status: 400 }
     );
   }

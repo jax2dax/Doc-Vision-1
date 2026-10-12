@@ -1,14 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Link2, Loader2, Plus } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const STRICTNESS_STYLE = {
-  strict: "bg-destructive/10 text-destructive",
-  moderate: "bg-secondary text-primary",
-  flexible: "bg-muted text-muted-foreground",
-};
+import { describeInterval } from "@/lib/deadlines/status";
 
 export function IntellectsPanel({ catalog, equipped, onChange }) {
   const [busyKey, setBusyKey] = useState(null);
@@ -27,86 +22,73 @@ export function IntellectsPanel({ catalog, equipped, onChange }) {
     }
   }
 
-  const names = Object.fromEntries(catalog.map((i) => [i.key, i.abbreviation]));
+  const names = Object.fromEntries(catalog.map((i) => [i.key, i.name]));
 
   return (
-    <div className="flex flex-col gap-4">
-      {error && <p className="text-sm text-destructive">{error}</p>}
+    <div>
+      <p className="mb-4 max-w-2xl text-sm text-muted-foreground">
+        Pick the kinds of document this workspace holds. Each kind tells the app what the document contains, which
+        dates it carries and how often it must be renewed. Do not upload client information.
+      </p>
+
+      {error && <p className="mb-3 text-sm text-destructive">{error}</p>}
 
       {catalog.length === 0 ? (
-        <div className="h-24 animate-pulse rounded-xl bg-accent" />
+        <div className="h-24 animate-pulse bg-accent" />
       ) : (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <ul className="divide-y divide-border border-y border-border">
           {catalog.map((i) => {
             const on = equipped.includes(i.key);
-            const busy = busyKey === i.key;
             return (
-              <div
-                key={i.key}
-                className={`flex flex-col gap-3 rounded-xl border bg-card p-5 transition-colors ${
-                  on ? "border-primary/50" : "border-border"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
+              <li key={i.key} className="py-4">
+                <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px] font-semibold text-primary">
-                        {i.abbreviation}
-                      </span>
-                      <h4 className="font-display text-lg leading-tight text-foreground">{i.name}</h4>
-                    </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                      <span className={`rounded-full px-2 py-0.5 font-medium ${STRICTNESS_STYLE[i.strictness]}`}>
-                        {i.strictness} strictness
-                      </span>
-                      <span>{i.commonCitationCount} known citation patterns</span>
-                      <span>v{i.version}</span>
-                    </div>
+                    <h3 className="font-display text-lg leading-tight text-foreground">{i.name}</h3>
+                    <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{i.summary}</p>
                   </div>
                   <Button
                     size="sm"
-                    variant={on ? "secondary" : "default"}
-                    disabled={busy}
+                    variant={on ? "outline" : "default"}
+                    disabled={busyKey === i.key}
                     onClick={() => toggle(i.key)}
                     className="flex-shrink-0"
                   >
-                    {busy ? (
-                      <Loader2 className="animate-spin" />
-                    ) : on ? (
-                      <Check />
-                    ) : (
-                      <Plus />
-                    )}
-                    {on ? "Equipped" : "Equip"}
+                    {busyKey === i.key && <Loader2 className="animate-spin" />}
+                    {on ? "Remove" : "Add"}
                   </Button>
                 </div>
 
-                <p className="text-sm leading-relaxed text-muted-foreground">{i.summary}</p>
-
-                {i.crossChecksWith.length > 0 && (
-                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Link2 className="h-3.5 w-3.5 flex-shrink-0" />
-                    Cross-checks with {i.crossChecksWith.map((k) => names[k] ?? k).join(", ")}
-                    {i.crossChecksWith.some((k) => !equipped.includes(k)) && on && (
-                      <span className="text-primary"> (equip it to enable)</span>
-                    )}
-                  </p>
-                )}
-
-                <details className="text-xs text-muted-foreground">
-                  <summary className="cursor-pointer select-none hover:text-foreground">
-                    What it requires ({i.requiredElements.length} elements)
+                <details className="mt-2 text-sm">
+                  <summary className="cursor-pointer select-none text-muted-foreground hover:text-foreground">
+                    Dates and rules
                   </summary>
-                  <ul className="mt-2 flex list-disc flex-col gap-1 pl-5">
-                    {i.requiredElements.map((r) => (
-                      <li key={r}>{r}</li>
+                  <dl className="mt-3 grid max-w-2xl gap-x-6 gap-y-2 sm:grid-cols-[11rem_1fr]">
+                    {i.dates.map((d) => (
+                      <div key={d.name} className="contents">
+                        <dt className="text-foreground">{d.name}</dt>
+                        <dd className="text-muted-foreground">{d.meaning}</dd>
+                      </div>
                     ))}
-                  </ul>
+                    {i.deadlineRules.map((r) => (
+                      <div key={r.key} className="contents">
+                        <dt className="text-foreground">{r.label}</dt>
+                        <dd className="text-muted-foreground">Renew at least every {describeInterval(r.every)}.</dd>
+                      </div>
+                    ))}
+                    {i.crossChecksWith.length > 0 && (
+                      <div className="contents">
+                        <dt className="text-foreground">Works with</dt>
+                        <dd className="text-muted-foreground">
+                          {i.crossChecksWith.map((k) => names[k] ?? k).join(", ")}
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
                 </details>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
     </div>
   );

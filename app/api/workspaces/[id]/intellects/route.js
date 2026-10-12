@@ -25,7 +25,7 @@ export async function GET(request, { params }) {
   }
 }
 
-/** Replaces the equipped set: { equipped: ["isp", "incident-report"] } */
+/** Replaces the equipped set: { equipped: ["delegation-book", "training-record"] } */
 export async function PUT(request, { params }) {
   const { id } = await params;
   const body = await request.json().catch(() => ({}));

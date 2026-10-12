@@ -1,10 +1,14 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
-import { ArrowUp, FileText, MessageSquare, Search } from "lucide-react";
+import { ArrowUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const EXAMPLES = ["Summarise the key points of these documents", "What review dates or deadlines are mentioned?"];
+const EXAMPLES = [
+  "Which delegations expire in the next 30 days?",
+  "When was the last safety meeting?",
+  "Whose training has expired?",
+];
 
 export function WorkspaceChat({ onAsk, hasReadyFiles }) {
   const [messages, setMessages] = useState([]);
@@ -33,55 +37,41 @@ export function WorkspaceChat({ onAsk, hasReadyFiles }) {
   }
 
   return (
-    <div className="flex min-h-full flex-col">
-      <div className="flex flex-1 flex-col gap-4 pb-4">
+    <div className="flex min-h-full max-w-3xl flex-col">
+      <div className="flex flex-1 flex-col pb-4">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border px-4 py-12 text-center">
-            <MessageSquare className="h-6 w-6 text-muted-foreground" />
-            <div>
-              <p className="font-medium text-foreground">Ask about your protocols</p>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-                {hasReadyFiles
-                  ? "Answers come only from your uploaded documents, with citations back to the source passage."
-                  : "Upload a file first. Answers come only from this workspace's files."}
-              </p>
-            </div>
+          <div className="py-6">
+            <p className="text-sm text-muted-foreground">
+              {hasReadyFiles
+                ? "Ask about anything in the uploaded files. Answers quote the file they came from."
+                : "Upload a file first. Answers come only from this workspace's files."}
+            </p>
             {hasReadyFiles && (
-              <div className="mt-1 flex flex-wrap justify-center gap-2">
+              <ul className="mt-3 flex flex-col items-start gap-1">
                 {EXAMPLES.map((ex) => (
-                  <Button key={ex} variant="outline" size="sm" onClick={() => send(ex)}>
-                    {ex}
-                  </Button>
+                  <li key={ex}>
+                    <button onClick={() => send(ex)} className="text-sm text-foreground underline underline-offset-4 hover:text-primary">
+                      {ex}
+                    </button>
+                  </li>
                 ))}
-              </div>
+              </ul>
             )}
           </div>
         )}
 
         {messages.map((msg, i) =>
           msg.role === "user" ? (
-            <div key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-primary px-4 py-2.5 text-sm text-primary-foreground">
-              <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+            <div key={i} className="border-t border-border py-4">
+              <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Question</p>
+              <p className="whitespace-pre-wrap break-words text-foreground">{msg.content}</p>
             </div>
           ) : (
-            <AssistantMessage key={i} message={msg} />
+            <Answer key={i} message={msg} />
           )
         )}
 
-        {pending && (
-          <div className="flex items-center gap-2 px-1 text-sm text-muted-foreground">
-            <span className="flex gap-1">
-              {[0, 150, 300].map((delay) => (
-                <span
-                  key={delay}
-                  className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground"
-                  style={{ animationDelay: `${delay}ms` }}
-                />
-              ))}
-            </span>
-            Reading your files…
-          </div>
-        )}
+        {pending && <p className="border-t border-border py-4 text-sm text-muted-foreground">Looking through the files…</p>}
         <div ref={endRef} />
       </div>
 
@@ -92,7 +82,7 @@ export function WorkspaceChat({ onAsk, hasReadyFiles }) {
         }}
         className="sticky bottom-0 -mx-4 border-t border-border bg-background px-4 py-3 sm:-mx-6 sm:px-6"
       >
-        <div className="flex items-end gap-2 rounded-xl border border-input bg-card px-3 py-2 focus-within:ring-2 focus-within:ring-ring">
+        <div className="flex max-w-3xl items-end gap-2 border border-input px-3 py-2 focus-within:ring-2 focus-within:ring-ring">
           <textarea
             rows={1}
             value={draft}
@@ -103,7 +93,7 @@ export function WorkspaceChat({ onAsk, hasReadyFiles }) {
                 send(draft);
               }
             }}
-            placeholder="Ask about a protocol or document…"
+            placeholder="Ask a question about your files"
             aria-label="Question"
             className="max-h-40 min-h-[24px] flex-1 resize-none bg-transparent py-1 text-sm text-foreground outline-none [field-sizing:content] placeholder:text-muted-foreground"
           />
@@ -116,59 +106,45 @@ export function WorkspaceChat({ onAsk, hasReadyFiles }) {
   );
 }
 
-function AssistantMessage({ message }) {
+function Answer({ message }) {
   const { result, failed } = message;
 
   if (failed) {
     return (
-      <div className="max-w-[92%] rounded-2xl rounded-bl-md border border-destructive/30 bg-destructive/10 px-4 py-2.5 text-sm text-destructive">
-        {message.content}
+      <div className="border-t border-border py-4">
+        <p className="text-sm text-destructive">{message.content}</p>
       </div>
     );
   }
 
   return (
-    <div className="flex max-w-[92%] flex-col gap-2">
-      <div className="rounded-2xl rounded-bl-md border border-border bg-card px-4 py-3 text-sm leading-relaxed text-foreground">
+    <div className="border-t border-border py-4">
+      <p className="mb-1 text-xs uppercase tracking-wider text-muted-foreground">Answer</p>
+      <div className="leading-relaxed text-foreground">
         <FormattedAnswer text={message.content} />
       </div>
 
       {result?.sources?.length > 0 && (
-        <div className="flex flex-col gap-1.5">
+        <ul className="mt-3 flex flex-col gap-1 text-xs text-muted-foreground">
           {result.sources.map((s) => (
-            <details key={s.ref} className="group rounded-lg border border-border/70 bg-card/60 px-3 py-2 text-xs">
-              <summary className="flex cursor-pointer list-none items-center gap-2 text-muted-foreground">
-                <span className="rounded bg-secondary px-1.5 font-mono text-[10px] text-primary">{s.ref}</span>
-                <FileText className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="truncate font-medium text-foreground">{s.filename}</span>
-                {s.page && <span className="flex-shrink-0">· p. {s.page}</span>}
-              </summary>
-              <p className="mt-2 whitespace-pre-wrap break-words text-muted-foreground">{s.excerpt}</p>
-            </details>
+            <li key={s.ref}>
+              <details>
+                <summary className="cursor-pointer select-none hover:text-foreground">
+                  [{s.ref}] {s.filename}
+                  {s.sheet ? `, sheet ${s.sheet}` : ""}
+                  {s.page ? `, page ${s.page}` : ""}
+                </summary>
+                <p className="mt-1 whitespace-pre-wrap break-words border-l-2 border-border pl-3">{s.excerpt}</p>
+              </details>
+            </li>
           ))}
-        </div>
-      )}
-
-      {result?.searches?.length > 0 && (
-        <details className="px-1 text-xs text-muted-foreground">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 hover:text-foreground">
-            <Search className="h-3 w-3" />
-            Ran {result.searches.length} search{result.searches.length === 1 ? "" : "es"}
-          </summary>
-          <ul className="mt-1.5 flex flex-col gap-1 pl-4">
-            {result.searches.map((s, i) => (
-              <li key={i}>
-                “{s.query}” <span className="opacity-70">in {s.filename ?? "all files"}</span>
-              </li>
-            ))}
-          </ul>
-        </details>
+        </ul>
       )}
     </div>
   );
 }
 
-// Minimal rendering for what Gemini actually emits: paragraphs,
+// Minimal rendering for what the model actually emits: paragraphs,
 // "-"/"*" bullets, **bold**, and [n] citations.
 function FormattedAnswer({ text }) {
   const blocks = [];
@@ -211,8 +187,8 @@ function Inline({ text }) {
     }
     if (/^\[\d+\]$/.test(part)) {
       return (
-        <sup key={i} className="mx-0.5 rounded bg-secondary px-1 font-mono text-[10px] text-primary">
-          {part.slice(1, -1)}
+        <sup key={i} className="mx-0.5 text-[10px] text-muted-foreground">
+          {part}
         </sup>
       );
     }
