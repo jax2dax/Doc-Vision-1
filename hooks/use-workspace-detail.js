@@ -4,6 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 
 export function useWorkspaceDetail(workspaceId) {
   const [workspace, setWorkspace] = useState(null);
+  const [role, setRole] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [members, setMembers] = useState([]);
   const [assets, setAssets] = useState([]);
   const [catalog, setCatalog] = useState([]);
   const [equipped, setEquipped] = useState([]);
@@ -19,6 +22,8 @@ export function useWorkspaceDetail(workspaceId) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Failed to load workspace");
       setWorkspace(json.workspace);
+      setRole(json.role);
+      setUserId(json.userId);
       setAssets(json.assets);
       setEquipped(json.equippedIntellects ?? []);
       setError(null);
@@ -110,20 +115,6 @@ export function useWorkspaceDetail(workspaceId) {
     [refreshDates]
   );
 
-  const runCheck = useCallback(
-    async (assetId, checkType) => {
-      const res = await fetch(`/api/workspaces/${workspaceId}/checks`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ assetId, checkType }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "The check failed");
-      return json;
-    },
-    [workspaceId]
-  );
-
   const uploadAsset = useCallback(
     async (file, description, intellectKey) => {
       const formData = new FormData();
@@ -144,6 +135,86 @@ export function useWorkspaceDetail(workspaceId) {
       return json;
     },
     [workspaceId, refresh, refreshDates]
+  );
+
+  const refreshMembers = useCallback(async () => {
+    const res = await fetch(`/api/workspaces/${workspaceId}/members`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error ?? "Could not load members");
+    setMembers(json.members);
+  }, [workspaceId]);
+
+  // Fetch-on-mount, same as the workspace itself.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    refreshMembers().catch(() => {});
+  }, [refreshMembers]);
+
+  const addMember = useCallback(
+    async (email) => {
+      const res = await fetch(`/api/workspaces/${workspaceId}/members`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not add that person");
+      await refreshMembers();
+    },
+    [workspaceId, refreshMembers]
+  );
+
+  const removeMember = useCallback(
+    async (memberId) => {
+      const res = await fetch(`/api/workspaces/${workspaceId}/members`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: memberId }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Could not remove that person");
+      await refreshMembers();
+    },
+    [workspaceId, refreshMembers]
+  );
+
+  const [google, setGoogle] = useState({ configured: false, email: null });
+  useEffect(() => {
+    fetch("/api/google-sheets")
+      .then((r) => r.json())
+      .then(setGoogle)
+      .catch(() => {});
+  }, []);
+
+  const linkGoogleSheet = useCallback(
+    async ({ url, description, intellectKey }) => {
+      const res = await fetch(`/api/workspaces/${workspaceId}/google-sheets`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url, description, intellectKey }),
+      });
+      const json = await res.json();
+      await Promise.all([refresh(), refreshDates()]);
+      if (res.status !== 201 && res.status !== 207) throw new Error(json.error ?? "Could not link the sheet");
+      if (json.error) throw new Error(json.error);
+      return json;
+    },
+    [workspaceId, refresh, refreshDates]
+  );
+
+  const syncAsset = useCallback(
+    async (assetId, force = false) => {
+      const res = await fetch(`/api/assets/${assetId}/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ force }),
+      });
+      const json = await res.json();
+      await Promise.all([refresh(), refreshDates()]);
+      if (!res.ok) throw new Error(json.error ?? "Sync failed");
+      return json;
+    },
+    [refresh, refreshDates]
   );
 
   const deleteAsset = useCallback(
@@ -188,6 +259,13 @@ export function useWorkspaceDetail(workspaceId) {
     rescanDates,
     updateEquipped,
     setAssetType,
-    runCheck,
+    google,
+    linkGoogleSheet,
+    syncAsset,
+    role,
+    userId,
+    members,
+    addMember,
+    removeMember,
   };
 }

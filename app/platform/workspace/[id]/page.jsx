@@ -6,13 +6,14 @@ import { AlertTriangle } from "lucide-react";
 import { useWorkspaceDetail } from "@/hooks/use-workspace-detail";
 import { FileUploadDropzone } from "@/components/platform/file-upload-dropzone";
 import { AssetList } from "@/components/platform/asset-list";
+import { LinkGoogleSheet } from "@/components/platform/link-google-sheet";
+import { MembersPanel } from "@/components/platform/members-panel";
 import { WorkspaceChat } from "@/components/platform/workspace-chat";
 import { IntellectsPanel } from "@/components/platform/intellects-panel";
-import { ChecksPanel } from "@/components/platform/checks-panel";
 import { DeadlinesPanel, urgentDeadlineCount } from "@/components/platform/deadlines-panel";
 import { deadlineStatus, todayString } from "@/lib/deadlines/status";
 
-const TABS = ["overview", "chat", "files", "deadlines", "intellects", "checks"];
+const TABS = ["overview", "chat", "files", "deadlines", "intellects", "members"];
 const TAB_LABELS = { deadlines: "due dates", intellects: "document types" };
 
 const fmt = (d) =>
@@ -35,7 +36,14 @@ export default function WorkspaceDetailPage() {
     rescanDates,
     updateEquipped,
     setAssetType,
-    runCheck,
+    google,
+    linkGoogleSheet,
+    syncAsset,
+    role,
+    userId,
+    members,
+    addMember,
+    removeMember,
   } = useWorkspaceDetail(id);
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -166,7 +174,14 @@ export default function WorkspaceDetailPage() {
         {activeTab === "files" && (
           <div className="flex max-w-4xl flex-col gap-5">
             <FileUploadDropzone onUpload={uploadAsset} typeOptions={typeOptions} />
-            <AssetList assets={assets} onDelete={deleteAsset} typeOptions={typeOptions} onChangeType={setAssetType} />
+            <LinkGoogleSheet google={google} typeOptions={typeOptions} onLink={linkGoogleSheet} />
+            <AssetList
+              assets={assets}
+              onDelete={deleteAsset}
+              typeOptions={typeOptions}
+              onChangeType={setAssetType}
+              onSync={syncAsset}
+            />
           </div>
         )}
 
@@ -174,18 +189,12 @@ export default function WorkspaceDetailPage() {
           <DeadlinesPanel dates={dates} assets={assets} catalog={catalog} error={datesError} onRescan={rescanDates} />
         )}
 
-        {activeTab === "intellects" && (
-          <IntellectsPanel catalog={catalog} equipped={equipped} onChange={updateEquipped} />
+        {activeTab === "members" && (
+          <MembersPanel members={members} role={role} userId={userId} onAdd={addMember} onRemove={removeMember} />
         )}
 
-        {activeTab === "checks" && (
-          <ChecksPanel
-            assets={assets}
-            catalog={catalog}
-            equipped={equipped}
-            onRun={runCheck}
-            onGoToIntellects={() => setActiveTab("intellects")}
-          />
+        {activeTab === "intellects" && (
+          <IntellectsPanel catalog={catalog} equipped={equipped} onChange={updateEquipped} />
         )}
       </div>
     </div>

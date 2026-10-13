@@ -43,10 +43,16 @@ create table if not exists public.assets (
   status          text not null default 'pending' check (status in ('pending','processing','ready','error')),
   error_message   text,
   intellect_key   text,                      -- document type, see lib/intellects/
+  source          text not null default 'upload',   -- 'upload' | 'google_sheets'
+  external_id     text,                      -- Google file id for linked sheets
+  external_modified timestamptz,             -- the sheet's last-modified time when we last read it
+  last_synced_at  timestamptz,
+  sync_error      text,
   created_at      timestamptz not null default now()
 );
 
 create index if not exists assets_workspace_idx on public.assets (workspace_id);
+create index if not exists assets_external_idx on public.assets (workspace_id, external_id);
 
 -- ---------- workspace_intellects (which document intellects a workspace has equipped) ----------
 
@@ -55,6 +61,17 @@ create table if not exists public.workspace_intellects (
   intellect_key text not null,
   created_at    timestamptz not null default now(),
   primary key (workspace_id, intellect_key)
+);
+
+-- ---------- custom_intellects (document types a workspace defines itself) ----------
+
+create table if not exists public.custom_intellects (
+  workspace_id uuid not null references public.workspaces(id) on delete cascade,
+  key          text not null,
+  definition   jsonb not null,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  primary key (workspace_id, key)
 );
 
 -- ---------- document_dates (dates and deadlines found in uploaded documents) ----------
@@ -186,6 +203,7 @@ alter table public.messages          enable row level security;
 alter table public.n8n_vectors       enable row level security;
 alter table public.workspace_intellects enable row level security;
 alter table public.document_dates enable row level security;
+alter table public.custom_intellects enable row level security;
 
 drop policy if exists "owner can do everything on their workspaces" on public.workspaces;
 create policy "owner can do everything on their workspaces"
@@ -218,6 +236,11 @@ create policy "workspace access via parent workspace" on public.document_dates f
   using (workspace_id in (select id from public.workspaces where owner_id = auth.uid()))
   with check (workspace_id in (select id from public.workspaces where owner_id = auth.uid()));
 
+drop policy if exists "workspace access via parent workspace" on public.custom_intellects;
+create policy "workspace access via parent workspace" on public.custom_intellects for all
+  using (workspace_id in (select id from public.workspaces where owner_id = auth.uid()))
+  with check (workspace_id in (select id from public.workspaces where owner_id = auth.uid()));
+
 drop policy if exists "workspace access via parent workspace" on public.conversations;
 create policy "workspace access via parent workspace" on public.conversations for all
   using (workspace_id in (select id from public.workspaces where owner_id = auth.uid()))
@@ -237,12 +260,12 @@ insert into storage.buckets (id, name, public)
 values ('assets', 'assets', false)
 on conflict (id) do nothing;
 
--- ---------- sanity check: should list 9 tables ----------
+-- ---------- sanity check: should list 10 tables ----------
 
 select table_name
 from information_schema.tables
 where table_schema = 'public'
-  and table_name in ('workspaces','workspace_members','assets','extracted_items','conversations','messages','n8n_vectors','workspace_intellects','document_dates')
+  and table_name in ('workspaces','workspace_members','assets','extracted_items','conversations','messages','n8n_vectors','workspace_intellects','document_dates','custom_intellects')
 order by table_name;
 
 -- make the API see the new column/table immediately

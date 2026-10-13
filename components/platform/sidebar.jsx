@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PanelLeft, Plus, Home, Search } from "lucide-react";
+import { PanelLeft, Plus, Home, Search, LogOut } from "lucide-react";
+import { createBrowserAuthClient } from "@/lib/supabase/browser";
 import { WorkspaceList } from "@/components/platform/workspace-list";
 import { NewWorkspaceDialog } from "@/components/platform/new-workspace-dialog";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
@@ -15,6 +16,19 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const [open, setOpen] = useState(true);
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [email, setEmail] = useState(null);
+
+  useEffect(() => {
+    createBrowserAuthClient()
+      .auth.getUser()
+      .then(({ data }) => setEmail(data?.user?.email ?? null))
+      .catch(() => {});
+  }, []);
+
+  async function signOut() {
+    await createBrowserAuthClient().auth.signOut();
+    window.location.assign("/login");
+  }
 
   return (
     <aside
@@ -85,9 +99,17 @@ export function Sidebar() {
         </div>
         {open && (
           <span className="min-w-0 flex-1 truncate font-sans text-sm font-medium text-sidebar-foreground">
-            Your Account
+            {email ?? "Account"}
           </span>
         )}
+        <button
+          onClick={signOut}
+          title="Sign out"
+          aria-label="Sign out"
+          className="flex-shrink-0 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
         <ThemeToggle className="flex-shrink-0" />
       </div>
 
